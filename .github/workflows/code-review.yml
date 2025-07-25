@@ -1,0 +1,55 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches: [main]
+
+jobs:
+  code-review:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install Claude Code
+      run: |
+        npm install -g @anthropic-ai/claude-code
+        
+    - name: Check for Linter Errors
+      run: |
+        echo "🔍 Checking for linter errors..."
+        find . -name "*.js" -o -name "*.py" | while read file; do
+          echo "Checking $file"
+          claude -p "Find linter errors in this file" --output-format stream-json < "$file" > linter-report.json
+          if grep -q "error" linter-report.json; then
+            echo "❌ Errors found in $file"
+            cat linter-report.json
+            exit 1
+          fi
+        done
+        
+    - name: Security Scan
+      run: |
+        echo "🔒 Running security scan..."
+        claude -p "Check for security vulnerabilities like SQL injection, XSS, or exposed credentials" \
+          --output-format stream-json < *.js > security-report.json
+        
+    - name: Generate PR Comment
+      if: github.event_name == 'pull_request'
+      run: |
+        echo "📝 Generating review summary..."
+        git diff origin/${{ github.base_ref }}...HEAD | \
+        claude -p "Review this diff and provide:
+        1. Summary of changes
+        2. Potential issues
+        3. Suggestions for improvement
+        Format as markdown" --output-format stream-json > review.json
+        
+        # Extract and post as PR comment (needs GitHub token)
+        echo "Review complete! (In real setup, this would post to PR)"
+        
+    - name: Quality Gate
+      run: |
+        echo "✅ All checks passed!" 

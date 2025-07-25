@@ -1,0 +1,21 @@
+name: Simple CI Check
+
+on: [push, pull_request]
+
+jobs:
+  claude-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Claude Code
+      run: npm install -g @anthropic-ai/claude-code
+      
+    - name: Run Code Check
+      run: |
+        # Check all JavaScript files
+        for file in $(find . -name "*.js" -not -path "./node_modules/*"); do
+          echo "Checking: $file"
+          claude -p "List any bugs or issues in this code" --output-format stream-json < "$file"
+        done 
