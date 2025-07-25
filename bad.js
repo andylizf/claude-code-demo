@@ -13,4 +13,10 @@ console.log(z)
 // == instead of ===
 if (x == "hello") {
     console.log("bad comparison")
+}
+
+// new error: missing error handling
+async function fetchData() {
+    const data = await fetch('/api')  // no error handling
+    return data.json()
 } 
